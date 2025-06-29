@@ -233,83 +233,65 @@ if ( ( true === $current_complete ) && ( is_a( $course_step_post, 'WP_Post' ) ) 
 	if ( $parent_id && 'focus' !== $context ) :
 		if ( $learndash_maybe_show_next_step_link ) :
 			?>
-    <div class="ld-content-action">
-        <?php
-    // デバッグ用ログ
-    error_log('=== COURSE STEPS DEBUG ===');
-    error_log('can_complete: ' . var_export($can_complete, true));
-    error_log('current_complete: ' . var_export($current_complete, true));
-    error_log('complete_button: ' . var_export($complete_button, true));
-    error_log('incomplete_button: ' . var_export($incomplete_button, true));
-    
-    // 完了状態の判定をより確実に
-    $is_completed = false;
-    if ( LDLMS_Post_Types::get_post_type_slug( LDLMS_Post_Types::TOPIC ) === $course_step_post->post_type ) {
-        $is_completed = learndash_is_topic_complete( $user_id, $course_step_post->ID, $course_id );
-    } elseif ( LDLMS_Post_Types::get_post_type_slug( LDLMS_Post_Types::LESSON ) === $course_step_post->post_type ) {
-        $is_completed = learndash_is_lesson_complete( $user_id, $course_step_post->ID, $course_id );
-    }
-    
-    error_log('is_completed: ' . var_export($is_completed, true));
-    
-    // 完了ボタンを常に表示（完了状態に関係なく）
-    if ( true === $can_complete ) :
-        if ( $is_completed ) :
-            // 完了済みの場合：完了ボタンと未完了ボタンの両方を表示
-            $nonce = wp_create_nonce( 'sfwd_mark_complete_' . $user_id . '_' . $course_step_post->ID . '_' . $course_id );
-            $completed_button = '<form class="sfwd-mark-complete" method="post" action="">
-                <input type="hidden" value="' . $course_step_post->ID . '" name="post" />
-                <input type="hidden" value="' . $course_id . '" name="course_id" />
-                <input type="hidden" value="' . $nonce . '" name="sfwd_mark_complete" />
-                <input type="submit" value="完了済み" class="learndash_mark_complete_button ld-completed" />
-            </form>';
-            
-            // 未完了ボタンを生成
-            $incomplete_button_html = learndash_show_mark_incomplete( $course_step_post );
-            
-            error_log('Generated completed button: ' . $completed_button);
-            error_log('Generated incomplete button: ' . $incomplete_button_html);
-            
-            echo '<div class="ld-toggle-buttons">';
-            echo $completed_button;
-            echo $incomplete_button_html;
-            echo '</div>';
-        else :
-            // 未完了の場合：通常表示
-            if ( ! empty( $complete_button ) ) :
-                error_log('Incomplete button: ' . $complete_button);
-                echo $complete_button;
-            endif;
-        endif;
-    elseif ( ( true === $can_complete ) && ( true === $current_complete ) &&  ( ! empty( $incomplete_button ) ) ) :
-        error_log('Incomplete button (alternative): ' . $incomplete_button);
-        echo $incomplete_button;
-        ?>
+			<div class="ld-content-action">
+			<?php
+			// デバッグ用ログ
+			error_log('=== COURSE STEPS DEBUG ===');
+			error_log('can_complete: ' . var_export($can_complete, true));
+			error_log('current_complete: ' . var_export($current_complete, true));
+			error_log('complete_button: ' . var_export($complete_button, true));
+			error_log('incomplete_button: ' . var_export($incomplete_button, true));
+			
+			// 完了状態の判定をより確実に
+			$is_completed = false;
+			if ( LDLMS_Post_Types::get_post_type_slug( LDLMS_Post_Types::TOPIC ) === $course_step_post->post_type ) {
+				$is_completed = learndash_is_topic_complete( $user_id, $course_step_post->ID, $course_id );
+			} elseif ( LDLMS_Post_Types::get_post_type_slug( LDLMS_Post_Types::LESSON ) === $course_step_post->post_type ) {
+				$is_completed = learndash_is_lesson_complete( $user_id, $course_step_post->ID, $course_id );
+			}
+			
+			error_log('is_completed: ' . var_export($is_completed, true));
+			
+			if ( true === $can_complete ) :
+				if ( $is_completed ) :
+					// 完了済み状態では未完了に戻すフォームを「完了済み」ボタン風に1つだけ表示
+					$nonce = wp_create_nonce( 'sfwd_mark_incomplete_' . $user_id . '_' . $course_step_post->ID );
+					echo '<form class="sfwd-mark-incomplete sfwd-mark-complete" method="post" action="" style="display:inline-block;">';
+					echo '<input type="hidden" value="' . $course_step_post->ID . '" name="post" />';
+					echo '<input type="hidden" value="' . $course_id . '" name="course_id" />';
+					echo '<input type="hidden" value="' . $nonce . '" name="sfwd_mark_incomplete" />';
+					echo '<input type="submit" value="完了済み" class="learndash_mark_complete_button ld-completed" />';
+					echo '</form>';
+					echo '<div class="ld-toggle-caption" style="font-size:12px;color:#888;margin-top:2px;">👆再クリックで未完了状態に戻ります</div>';
+				else :
+					// 未完了の場合：通常表示
+					if ( ! empty( $complete_button ) ) :
+						echo $complete_button;
+					endif;
+				endif;
+			elseif ( ( true === $can_complete ) && ( true === $current_complete ) &&  ( ! empty( $incomplete_button ) ) ) :
+				echo $incomplete_button;
+				?>
 
-        <?php endif; ?>
-        <a href="<?php echo esc_url( learndash_get_step_permalink( $parent_id, $course_id ) ); ?>"
-            class="ld-primary-color ld-course-step-back"><?php echo learndash_get_label_course_step_back( get_post_type( $parent_id ) ); ?></a>
-    </div>
-    <div class="ld-content-action <?php if ( ( ! $learndash_next_step_id ) ) : ?>ld-empty<?php endif; ?>">
-        <?php if ( $learndash_next_step_id ) : ?>
-        <a class="<?php echo esc_attr( $button_class ); ?>"
-            href="<?php echo esc_url( learndash_get_step_permalink( $learndash_next_step_id, $course_id ) ); ?>">
-            <span
-                class="ld-text"><?php echo learndash_get_label_course_step_next( get_post_type( $learndash_next_step_id ) ); ?></span>
-            <?php if ( is_rtl() ) { ?>
-            <span class="ld-icon ld-icon-arrow-left"></span>
-            <?php } else { ?>
-            <span class="ld-icon ld-icon-arrow-right"></span>
-            <?php } ?>
-        </a>
-        <?php endif; ?>
-    </div>
-    <?php else : ?>
-    <a href="<?php echo esc_attr( learndash_get_step_permalink( $parent_id, $course_id ) ); ?>"
-        class="ld-primary-color"><?php echo learndash_get_label_course_step_back( get_post_type( $parent_id ) ); ?></a>
-    <div
-        class="ld-content-action <?php if ( ( ! $can_complete ) && ( ! $learndash_next_step_id ) ) : ?>ld-empty<?php endif; ?>">
-        <?php
+			<?php endif; ?>
+			<a href="<?php echo esc_url( learndash_get_step_permalink( $parent_id, $course_id ) ); ?>" class="ld-primary-color ld-course-step-back"><?php echo learndash_get_label_course_step_back( get_post_type( $parent_id ) ); ?></a>
+			</div>
+			<div class="ld-content-action <?php if ( ( ! $learndash_next_step_id ) ) : ?>ld-empty<?php endif; ?>">
+			<?php if ( $learndash_next_step_id ) : ?>
+				<a class="<?php echo esc_attr( $button_class ); ?>" href="<?php echo esc_url( learndash_get_step_permalink( $learndash_next_step_id, $course_id ) ); ?>">
+					<span class="ld-text"><?php echo learndash_get_label_course_step_next( get_post_type( $learndash_next_step_id ) ); ?></span>
+					<?php if ( is_rtl() ) { ?>
+						<span class="ld-icon ld-icon-arrow-left"></span>
+						<?php } else { ?>
+						<span class="ld-icon ld-icon-arrow-right"></span>
+					<?php } ?>
+				</a>
+			<?php endif; ?>
+			</div>
+			<?php else : ?>
+			<a href="<?php echo esc_attr( learndash_get_step_permalink( $parent_id, $course_id ) ); ?>" class="ld-primary-color"><?php echo learndash_get_label_course_step_back( get_post_type( $parent_id ) ); ?></a>
+			<div class="ld-content-action <?php if ( ( ! $can_complete ) && ( ! $learndash_next_step_id ) ) : ?>ld-empty<?php endif; ?>">
+				<?php
 				// 完了状態の判定をより確実に
 				$is_completed = false;
 				if ( LDLMS_Post_Types::get_post_type_slug( LDLMS_Post_Types::TOPIC ) === $course_step_post->post_type ) {
@@ -318,50 +300,37 @@ if ( ( true === $current_complete ) && ( is_a( $course_step_post, 'WP_Post' ) ) 
 					$is_completed = learndash_is_lesson_complete( $user_id, $course_step_post->ID, $course_id );
 				}
 				
-				// 完了ボタンを常に表示（完了状態に関係なく）
 				if ( true === $can_complete ) :
 					if ( $is_completed ) :
-						// 完了済みの場合：完了ボタンと未完了ボタンの両方を表示
-						$nonce = wp_create_nonce( 'sfwd_mark_complete_' . $user_id . '_' . $course_step_post->ID . '_' . $course_id );
-						$completed_button = '<form class="sfwd-mark-complete" method="post" action="">
-							<input type="hidden" value="' . $course_step_post->ID . '" name="post" />
-							<input type="hidden" value="' . $course_id . '" name="course_id" />
-							<input type="hidden" value="' . $nonce . '" name="sfwd_mark_complete" />
-							<input type="submit" value="完了済み" class="learndash_mark_complete_button ld-completed" />
-						</form>';
-						
-						// 未完了ボタンを生成
-						$incomplete_button_html = learndash_show_mark_incomplete( $course_step_post );
-						
-						echo '<div class="ld-toggle-buttons">';
-						echo $completed_button;
-						echo $incomplete_button_html;
-						echo '</div>';
+						$nonce = wp_create_nonce( 'sfwd_mark_incomplete_' . $user_id . '_' . $course_step_post->ID );
+						echo '<form class="sfwd-mark-incomplete sfwd-mark-complete" method="post" action="" style="display:inline-block;">';
+						echo '<input type="hidden" value="' . $course_step_post->ID . '" name="post" />';
+						echo '<input type="hidden" value="' . $course_id . '" name="course_id" />';
+						echo '<input type="hidden" value="' . $nonce . '" name="sfwd_mark_incomplete" />';
+						echo '<input type="submit" value="完了済み" class="learndash_mark_complete_button ld-completed" />';
+						echo '</form>';
+						echo '<div class="ld-toggle-caption" style="font-size:12px;color:#888;margin-top:2px;">👆再クリックで未完了状態に戻ります</div>';
 					else :
-						// 未完了の場合：通常表示
 						if ( ! empty( $complete_button ) ) :
 							echo $complete_button;
 						endif;
 					endif;
 				elseif ( $learndash_next_step_id ) :
 					?>
-        <a class="<?php echo esc_attr( $button_class ); ?>"
-            href="<?php echo esc_attr( learndash_get_step_permalink( $learndash_next_step_id, $course_id ) ); ?>">
-            <span
-                class="ld-text"><?php echo learndash_get_label_course_step_next( get_post_type( $learndash_next_step_id ) ); ?></span>
-            <?php if ( is_rtl() ) { ?>
-            <span class="ld-icon ld-icon-arrow-left"></span>
-            <?php } else { ?>
-            <span class="ld-icon ld-icon-arrow-right"></span>
-            <?php } ?>
-        </a>
-        <?php endif; ?>
-    </div>
-    <?php endif; ?>
-    <?php elseif ( $parent_id && 'focus' === $context ) : ?>
-    <div
-        class="ld-content-action <?php if ( ( ! $can_complete ) && ( ! $learndash_next_step_id ) ) : ?>ld-empty<?php endif; ?>">
-        <?php
+					<a class="<?php echo esc_attr( $button_class ); ?>" href="<?php echo esc_attr( learndash_get_step_permalink( $learndash_next_step_id, $course_id ) ); ?>">
+					<span class="ld-text"><?php echo learndash_get_label_course_step_next( get_post_type( $learndash_next_step_id ) ); ?></span>
+						<?php if ( is_rtl() ) { ?>
+						<span class="ld-icon ld-icon-arrow-left"></span>
+						<?php } else { ?>
+						<span class="ld-icon ld-icon-arrow-right"></span>
+						<?php } ?>
+					</a>
+			<?php endif; ?>
+			</div>
+		<?php endif; ?>
+	<?php elseif ( $parent_id && 'focus' === $context ) : ?>
+	<div class="ld-content-action <?php if ( ( ! $can_complete ) && ( ! $learndash_next_step_id ) ) : ?>ld-empty<?php endif; ?>">
+		<?php
 		// 完了状態の判定をより確実に
 		$is_completed = false;
 		if ( LDLMS_Post_Types::get_post_type_slug( LDLMS_Post_Types::TOPIC ) === $course_step_post->post_type ) {
@@ -370,27 +339,17 @@ if ( ( true === $current_complete ) && ( is_a( $course_step_post, 'WP_Post' ) ) 
 			$is_completed = learndash_is_lesson_complete( $user_id, $course_step_post->ID, $course_id );
 		}
 		
-		// 完了ボタンを常に表示（完了状態に関係なく）
 		if ( true === $can_complete ) :
 			if ( $is_completed ) :
-				// 完了済みの場合：完了ボタンと未完了ボタンの両方を表示
-				$nonce = wp_create_nonce( 'sfwd_mark_complete_' . $user_id . '_' . $course_step_post->ID . '_' . $course_id );
-				$completed_button = '<form class="sfwd-mark-complete" method="post" action="">
-					<input type="hidden" value="' . $course_step_post->ID . '" name="post" />
-					<input type="hidden" value="' . $course_id . '" name="course_id" />
-					<input type="hidden" value="' . $nonce . '" name="sfwd_mark_complete" />
-					<input type="submit" value="完了済み" class="learndash_mark_complete_button ld-completed" />
-				</form>';
-				
-				// 未完了ボタンを生成
-				$incomplete_button_html = learndash_show_mark_incomplete( $course_step_post );
-				
-				echo '<div class="ld-toggle-buttons">';
-				echo $completed_button;
-				echo $incomplete_button_html;
-				echo '</div>';
+				$nonce = wp_create_nonce( 'sfwd_mark_incomplete_' . $user_id . '_' . $course_step_post->ID );
+				echo '<form class="sfwd-mark-incomplete sfwd-mark-complete" method="post" action="" style="display:inline-block;">';
+				echo '<input type="hidden" value="' . $course_step_post->ID . '" name="post" />';
+				echo '<input type="hidden" value="' . $course_id . '" name="course_id" />';
+				echo '<input type="hidden" value="' . $nonce . '" name="sfwd_mark_incomplete" />';
+				echo '<input type="submit" value="完了済み" class="learndash_mark_complete_button ld-completed" />';
+				echo '</form>';
+				echo '<div class="ld-toggle-caption" style="font-size:12px;color:#888;margin-top:2px;">👆再クリックで未完了状態に戻ります</div>';
 			else :
-				// 未完了の場合：通常表示
 				if ( ! empty( $complete_button ) ) :
 					echo $complete_button;
 				endif;
@@ -399,19 +358,17 @@ if ( ( true === $current_complete ) && ( is_a( $course_step_post, 'WP_Post' ) ) 
 			echo $incomplete_button;
 		elseif ( $learndash_next_step_id ) :
 			?>
-        <a class="<?php echo esc_attr( $button_class ); ?>"
-            href="<?php echo esc_attr( learndash_get_step_permalink( $learndash_next_step_id, $course_id ) ); ?>">
-            <span
-                class="ld-text"><?php echo learndash_get_label_course_step_next( get_post_type( $learndash_next_step_id ) ); ?></span>
-            <?php if ( is_rtl() ) { ?>
-            <span class="ld-icon ld-icon-arrow-left"></span>
-            <?php } else { ?>
-            <span class="ld-icon ld-icon-arrow-right"></span>
-            <?php } ?>
-        </a>
-        <?php endif; ?>
-    </div>
-    <?php endif; ?>
+			<a class="<?php echo esc_attr( $button_class ); ?>" href="<?php echo esc_attr( learndash_get_step_permalink( $learndash_next_step_id, $course_id ) ); ?>">
+				<span class="ld-text"><?php echo learndash_get_label_course_step_next( get_post_type( $learndash_next_step_id ) ); ?></span>
+				<?php if ( is_rtl() ) { ?>
+				<span class="ld-icon ld-icon-arrow-left"></span>
+				<?php } else { ?>
+				<span class="ld-icon ld-icon-arrow-right"></span>
+				<?php } ?>
+			</a>
+		<?php endif; ?>
+	</div>
+	<?php endif; ?>
     <?php
 	/**
 	 * Fires after the course steps (all locations).
