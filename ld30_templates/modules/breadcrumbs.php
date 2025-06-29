@@ -29,8 +29,14 @@ if ( ! isset( $post ) ) {
 do_action( 'learndash-breadcrumbs-before' ); ?>
 
 <div class="ld-breadcrumbs-segments">
-	<?php
+    <?php
 	$breadcrumbs = learndash_get_breadcrumbs( $post );
+
+	// 学習カリキュラム一覧を追加
+	$breadcrumbs['curriculum'] = array(
+		'permalink' => home_url('/my_curriculum/'),
+		'title' => '学習カリキュラム一覧'
+	);
 
 	/**
 	 * Filter Breadcrumb keys
@@ -42,6 +48,7 @@ do_action( 'learndash-breadcrumbs-before' ); ?>
 	$keys = apply_filters(
 		'learndash_breadcrumbs_keys',
 		array(
+			'curriculum', // 学習カリキュラム一覧を最初に追加
 			'course',
 			'lesson',
 			'topic',
@@ -52,12 +59,15 @@ do_action( 'learndash-breadcrumbs-before' ); ?>
 	foreach ( $keys as $key ) :
 		if ( isset( $breadcrumbs[ $key ] ) ) :
 			?>
-			<span><a href="<?php echo esc_url( $breadcrumbs[ $key ]['permalink'] ); ?>"><?php echo esc_html( wp_strip_all_tags( $breadcrumbs[ $key ]['title'] ) ); ?></a> </span>
-			<?php
+    <span><a
+            href="<?php echo esc_url( $breadcrumbs[ $key ]['permalink'] ); ?>"><?php echo esc_html( wp_strip_all_tags( $breadcrumbs[ $key ]['title'] ) ); ?></a>
+    </span>
+    <?php
 		endif;
 	endforeach;
 	?>
-</div> <!--/.ld-breadcrumbs-segments-->
+</div>
+<!--/.ld-breadcrumbs-segments-->
 
 <?php
 /**
