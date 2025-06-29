@@ -235,47 +235,56 @@ if ( ( true === $current_complete ) && ( is_a( $course_step_post, 'WP_Post' ) ) 
 			?>
     <div class="ld-content-action">
         <?php
-			// デバッグ用ログ
-			error_log('=== COURSE STEPS DEBUG ===');
-			error_log('can_complete: ' . var_export($can_complete, true));
-			error_log('current_complete: ' . var_export($current_complete, true));
-			error_log('complete_button: ' . var_export($complete_button, true));
-			error_log('incomplete_button: ' . var_export($incomplete_button, true));
-			
-			// 完了状態の判定をより確実に
-			$is_completed = false;
-			if ( LDLMS_Post_Types::get_post_type_slug( LDLMS_Post_Types::TOPIC ) === $course_step_post->post_type ) {
-				$is_completed = learndash_is_topic_complete( $user_id, $course_step_post->ID, $course_id );
-			} elseif ( LDLMS_Post_Types::get_post_type_slug( LDLMS_Post_Types::LESSON ) === $course_step_post->post_type ) {
-				$is_completed = learndash_is_lesson_complete( $user_id, $course_step_post->ID, $course_id );
-			}
-			
-			error_log('is_completed: ' . var_export($is_completed, true));
-			
-			// 完了ボタンを常に表示（完了状態に関係なく）
-			if ( true === $can_complete ) :
-				if ( $is_completed ) :
-					// 完了済みの場合：強制的にボタンを生成
-					$nonce = wp_create_nonce( 'sfwd_mark_complete_' . $user_id . '_' . $course_step_post->ID . '_' . $course_id );
-					$completed_button = '<form class="sfwd-mark-complete" method="post" action="">
-						<input type="hidden" value="' . $course_step_post->ID . '" name="post" />
-						<input type="hidden" value="' . $course_id . '" name="course_id" />
-						<input type="hidden" value="' . $nonce . '" name="sfwd_mark_complete" />
-						<input type="submit" value="完了済み" class="learndash_mark_complete_button ld-completed" />
-					</form>';
-					error_log('Generated completed button: ' . $completed_button);
-					echo $completed_button;
-				else :
-					// 未完了の場合：通常表示
-					if ( ! empty( $complete_button ) ) :
-						error_log('Incomplete button: ' . $complete_button);
-						echo $complete_button;
-					endif;
-				endif;
-			elseif ( ( true === $can_complete ) && ( true === $current_complete ) &&  ( ! empty( $incomplete_button ) ) ) :
-				error_log('Incomplete button (alternative): ' . $incomplete_button);
-				echo $incomplete_button;
-				?>
+    // デバッグ用ログ
+    error_log('=== COURSE STEPS DEBUG ===');
+    error_log('can_complete: ' . var_export($can_complete, true));
+    error_log('current_complete: ' . var_export($current_complete, true));
+    error_log('complete_button: ' . var_export($complete_button, true));
+    error_log('incomplete_button: ' . var_export($incomplete_button, true));
+    
+    // 完了状態の判定をより確実に
+    $is_completed = false;
+    if ( LDLMS_Post_Types::get_post_type_slug( LDLMS_Post_Types::TOPIC ) === $course_step_post->post_type ) {
+        $is_completed = learndash_is_topic_complete( $user_id, $course_step_post->ID, $course_id );
+    } elseif ( LDLMS_Post_Types::get_post_type_slug( LDLMS_Post_Types::LESSON ) === $course_step_post->post_type ) {
+        $is_completed = learndash_is_lesson_complete( $user_id, $course_step_post->ID, $course_id );
+    }
+    
+    error_log('is_completed: ' . var_export($is_completed, true));
+    
+    // 完了ボタンを常に表示（完了状態に関係なく）
+    if ( true === $can_complete ) :
+        if ( $is_completed ) :
+            // 完了済みの場合：完了ボタンと未完了ボタンの両方を表示
+            $nonce = wp_create_nonce( 'sfwd_mark_complete_' . $user_id . '_' . $course_step_post->ID . '_' . $course_id );
+            $completed_button = '<form class="sfwd-mark-complete" method="post" action="">
+                <input type="hidden" value="' . $course_step_post->ID . '" name="post" />
+                <input type="hidden" value="' . $course_id . '" name="course_id" />
+                <input type="hidden" value="' . $nonce . '" name="sfwd_mark_complete" />
+                <input type="submit" value="完了済み" class="learndash_mark_complete_button ld-completed" />
+            </form>';
+            
+            // 未完了ボタンを生成
+            $incomplete_button_html = learndash_show_mark_incomplete( $course_step_post );
+            
+            error_log('Generated completed button: ' . $completed_button);
+            error_log('Generated incomplete button: ' . $incomplete_button_html);
+            
+            echo '<div class="ld-toggle-buttons">';
+            echo $completed_button;
+            echo $incomplete_button_html;
+            echo '</div>';
+        else :
+            // 未完了の場合：通常表示
+            if ( ! empty( $complete_button ) ) :
+                error_log('Incomplete button: ' . $complete_button);
+                echo $complete_button;
+            endif;
+        endif;
+    elseif ( ( true === $can_complete ) && ( true === $current_complete ) &&  ( ! empty( $incomplete_button ) ) ) :
+        error_log('Incomplete button (alternative): ' . $incomplete_button);
+        echo $incomplete_button;
+        ?>
 
         <?php endif; ?>
         <a href="<?php echo esc_url( learndash_get_step_permalink( $parent_id, $course_id ) ); ?>"
@@ -312,7 +321,7 @@ if ( ( true === $current_complete ) && ( is_a( $course_step_post, 'WP_Post' ) ) 
 				// 完了ボタンを常に表示（完了状態に関係なく）
 				if ( true === $can_complete ) :
 					if ( $is_completed ) :
-						// 完了済みの場合：強制的にボタンを生成
+						// 完了済みの場合：完了ボタンと未完了ボタンの両方を表示
 						$nonce = wp_create_nonce( 'sfwd_mark_complete_' . $user_id . '_' . $course_step_post->ID . '_' . $course_id );
 						$completed_button = '<form class="sfwd-mark-complete" method="post" action="">
 							<input type="hidden" value="' . $course_step_post->ID . '" name="post" />
@@ -320,7 +329,14 @@ if ( ( true === $current_complete ) && ( is_a( $course_step_post, 'WP_Post' ) ) 
 							<input type="hidden" value="' . $nonce . '" name="sfwd_mark_complete" />
 							<input type="submit" value="完了済み" class="learndash_mark_complete_button ld-completed" />
 						</form>';
+						
+						// 未完了ボタンを生成
+						$incomplete_button_html = learndash_show_mark_incomplete( $course_step_post );
+						
+						echo '<div class="ld-toggle-buttons">';
 						echo $completed_button;
+						echo $incomplete_button_html;
+						echo '</div>';
 					else :
 						// 未完了の場合：通常表示
 						if ( ! empty( $complete_button ) ) :
@@ -357,7 +373,7 @@ if ( ( true === $current_complete ) && ( is_a( $course_step_post, 'WP_Post' ) ) 
 		// 完了ボタンを常に表示（完了状態に関係なく）
 		if ( true === $can_complete ) :
 			if ( $is_completed ) :
-				// 完了済みの場合：強制的にボタンを生成
+				// 完了済みの場合：完了ボタンと未完了ボタンの両方を表示
 				$nonce = wp_create_nonce( 'sfwd_mark_complete_' . $user_id . '_' . $course_step_post->ID . '_' . $course_id );
 				$completed_button = '<form class="sfwd-mark-complete" method="post" action="">
 					<input type="hidden" value="' . $course_step_post->ID . '" name="post" />
@@ -365,7 +381,14 @@ if ( ( true === $current_complete ) && ( is_a( $course_step_post, 'WP_Post' ) ) 
 					<input type="hidden" value="' . $nonce . '" name="sfwd_mark_complete" />
 					<input type="submit" value="完了済み" class="learndash_mark_complete_button ld-completed" />
 				</form>';
+				
+				// 未完了ボタンを生成
+				$incomplete_button_html = learndash_show_mark_incomplete( $course_step_post );
+				
+				echo '<div class="ld-toggle-buttons">';
 				echo $completed_button;
+				echo $incomplete_button_html;
+				echo '</div>';
 			else :
 				// 未完了の場合：通常表示
 				if ( ! empty( $complete_button ) ) :
